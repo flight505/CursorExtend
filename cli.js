@@ -9,27 +9,66 @@ import ora from 'ora';
 import { config } from 'dotenv';
 import { writeFile } from 'fs/promises';
 import { createServer } from './server.js';
+import { homedir } from 'os';
+import { join } from 'path';
+import { readFileSync } from 'fs';
 
-// Load environment variables in sequence
+// Load environment variables from all possible sources
 function loadEnvironment() {
-  // First try shell environment
-  const envVars = {
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-    GITHUB_TOKEN: process.env.GITHUB_TOKEN,
-    TAVILY_API_KEY: process.env.TAVILY_API_KEY,
-    REASONING_EFFORT: process.env.REASONING_EFFORT
-  };
+  const sources = [
+    // Process environment
+    process.env,
+    // Local .env
+    loadDotEnv('./.env'),
+    // Global .env
+    loadDotEnv(join(homedir(), '.env')),
+    // zshrc
+    loadShellConfig(join(homedir(), '.zshrc')),
+    // bash_profile
+    loadShellConfig(join(homedir(), '.bash_profile')),
+    // bashrc
+    loadShellConfig(join(homedir(), '.bashrc'))
+  ];
 
-  // Then try .env file
-  config();
-
-  // Merge with any .env values
+  // Merge all sources, taking the first non-empty value
   return {
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY || envVars.OPENAI_API_KEY,
-    GITHUB_TOKEN: process.env.GITHUB_TOKEN || envVars.GITHUB_TOKEN,
-    TAVILY_API_KEY: process.env.TAVILY_API_KEY || envVars.TAVILY_API_KEY,
-    REASONING_EFFORT: process.env.REASONING_EFFORT || envVars.REASONING_EFFORT
+    OPENAI_API_KEY: findFirstValue(sources, 'OPENAI_API_KEY'),
+    GITHUB_TOKEN: findFirstValue(sources, 'GITHUB_TOKEN'),
+    TAVILY_API_KEY: findFirstValue(sources, 'TAVILY_API_KEY'),
+    REASONING_EFFORT: findFirstValue(sources, 'REASONING_EFFORT')
   };
+}
+
+function loadDotEnv(path) {
+  try {
+    return config({ path }).parsed || {};
+  } catch {
+    return {};
+  }
+}
+
+function loadShellConfig(path) {
+  try {
+    const content = readFileSync(path, 'utf8');
+    const vars = {};
+    const exportRegex = /export\s+([A-Z_]+)=["']?([^"'\n]+)["']?/g;
+    let match;
+    while ((match = exportRegex.exec(content)) !== null) {
+      vars[match[1]] = match[2];
+    }
+    return vars;
+  } catch {
+    return {};
+  }
+}
+
+function findFirstValue(sources, key) {
+  for (const source of sources) {
+    if (source && source[key]) {
+      return source[key];
+    }
+  }
+  return null;
 }
 
 const spinner = ora();
