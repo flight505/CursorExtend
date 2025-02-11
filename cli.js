@@ -6,106 +6,43 @@ process.removeAllListeners('warning');
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 import ora from 'ora';
-import { config } from 'dotenv';
+import dotenvx from '@dotenvx/dotenvx';
 import { writeFile } from 'fs/promises';
 import { createServer } from './server.js';
-import { homedir } from 'os';
-import { join } from 'path';
-import { readFileSync } from 'fs';
 
-// Load environment variables from all possible sources
-function loadEnvironment() {
-  const sources = [
-    // Process environment
-    process.env,
-    // Local .env
-    loadDotEnv('./.env'),
-    // Global .env
-    loadDotEnv(join(homedir(), '.env')),
-    // zshrc
-    loadShellConfig(join(homedir(), '.zshrc')),
-    // bash_profile
-    loadShellConfig(join(homedir(), '.bash_profile')),
-    // bashrc
-    loadShellConfig(join(homedir(), '.bashrc'))
-  ];
-
-  // Merge all sources, taking the first non-empty value
-  return {
-    OPENAI_API_KEY: findFirstValue(sources, 'OPENAI_API_KEY'),
-    GITHUB_TOKEN: findFirstValue(sources, 'GITHUB_TOKEN'),
-    TAVILY_API_KEY: findFirstValue(sources, 'TAVILY_API_KEY'),
-    REASONING_EFFORT: findFirstValue(sources, 'REASONING_EFFORT')
-  };
-}
-
-function loadDotEnv(path) {
-  try {
-    return config({ path }).parsed || {};
-  } catch {
-    return {};
-  }
-}
-
-function loadShellConfig(path) {
-  try {
-    const content = readFileSync(path, 'utf8');
-    const vars = {};
-    const exportRegex = /export\s+([A-Z_]+)=["']?([^"'\n]+)["']?/g;
-    let match;
-    while ((match = exportRegex.exec(content)) !== null) {
-      vars[match[1]] = match[2];
-    }
-    return vars;
-  } catch {
-    return {};
-  }
-}
-
-function findFirstValue(sources, key) {
-  for (const source of sources) {
-    if (source && source[key]) {
-      return source[key];
-    }
-  }
-  return null;
-}
+// Load environment with dotenvx
+dotenvx.config({ ignore: ['MISSING_ENV_FILE'] });
 
 const spinner = ora();
-
-async function validateOpenAIKey(key) {
-  if (!key) return 'OpenAI API key is required';
-  if (!key.startsWith('sk-')) return 'Invalid OpenAI API key format';
-  return true;
-}
 
 async function setupEnvironment() {
   console.log(chalk.blue.bold('\n🚀 Welcome to CursorExtend - Your AI-Powered Code Assistant!\n'));
 
-  // Load existing environment
-  const env = loadEnvironment();
+  const questions = [];
 
-  const questions = [
-    {
+  // Required: OpenAI API key
+  if (!process.env.OPENAI_API_KEY) {
+    questions.push({
       type: 'password',
       name: 'OPENAI_API_KEY',
       message: 'Enter your OpenAI API key (required):',
-      validate: validateOpenAIKey,
-      default: env.OPENAI_API_KEY
-    },
-    {
-      type: 'password',
-      name: 'GITHUB_TOKEN',
-      message: 'Enter GitHub token for higher rate limits (press Enter to skip):',
-      default: env.GITHUB_TOKEN || ''
-    },
-    {
+      validate: key => key && key.startsWith('sk-') ? true : 'Invalid OpenAI API key format'
+    });
+  }
+
+  // Required: Tavily API key for web search
+  if (!process.env.TAVILY_API_KEY) {
+    questions.push({
       type: 'password',
       name: 'TAVILY_API_KEY',
-      message: 'Enter Tavily API key for web search (press Enter to skip):',
-      default: env.TAVILY_API_KEY || ''
-    },
-    {
+      message: 'Enter your Tavily API key for web search (required):',
+      validate: key => key ? true : 'Tavily API key is required for web search functionality'
+    });
+  }
+
+  // Only prompt for reasoning effort if not set
+  if (!process.env.REASONING_EFFORT) {
+    questions.push({
       type: 'list',
       name: 'REASONING_EFFORT',
       message: 'Select reasoning effort for o3-mini:',
@@ -114,20 +51,20 @@ async function setupEnvironment() {
         { name: 'Medium (Balanced)', value: 'medium' },
         { name: 'Low    (Faster, basic analysis)', value: 'low' }
       ],
-      default: env.REASONING_EFFORT || 'high'
-    }
-  ];
+      default: 'high'
+    });
+  }
 
-  const answers = await inquirer.prompt(questions);
+  // Only prompt if we have questions
+  const answers = questions.length > 0 ? await inquirer.prompt(questions) : {};
   
-  // Create .env file
-  const envContent = Object.entries(answers)
-    .filter(([_, value]) => value) // Skip empty values
-    .map(([key, value]) => `${key}="${value}"`)
-    .join('\n');
-
-  await writeFile('.env', envContent);
-  return answers;
+  // Merge environment with answers
+  return {
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY || answers.OPENAI_API_KEY,
+    TAVILY_API_KEY: process.env.TAVILY_API_KEY || answers.TAVILY_API_KEY,
+    GITHUB_TOKEN: process.env.GITHUB_TOKEN, // Truly optional
+    REASONING_EFFORT: process.env.REASONING_EFFORT || answers.REASONING_EFFORT || 'high'
+  };
 }
 
 async function startServer(config) {
