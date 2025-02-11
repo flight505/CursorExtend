@@ -6,7 +6,6 @@ import os
 from typing import Annotated, List, Literal, Tuple, Union
 
 # Third-party imports
-from dotenv import load_dotenv
 from langchain.agents import Tool
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.prompts import ChatPromptTemplate
@@ -65,7 +64,6 @@ logger = logging.getLogger("cursor_extend")
 def setup_environment() -> None:
     """Initialize environment variables and validate their presence."""
     try:
-        load_dotenv()
         required_vars = ["OPENAI_API_KEY", "TAVILY_API_KEY"]
         missing_vars = [var for var in required_vars if not os.getenv(var)]
         if missing_vars:
