@@ -1,139 +1,114 @@
-# CursorExtend 🚀
+# Cursor MCP Server with o3-mini 🚀
 
-A powerful monorepo containing agentic tools for code generation, analysis, and project management. Built with TypeScript/Node.js and Python.
+A lightweight MCP (Model Context Protocol) server for Cursor, powered by OpenAI's o3-mini model. Supports both command-line and SSE (Server-Sent Events) modes.
 
 ## Features 🌟
 
-### CLI Tools (Node.js) 🛠️
-- Guided setup wizard for project configuration
-- Deep Research Agent for code architecture analysis
-- Integration with GitHub, StackOverflow, and web search
-- Modular plugin architecture
-- ML Workflow & Data Pipeline Manager
+- 🤖 Powered by o3-mini model for efficient code analysis
+- 🔄 Dual-mode support:
+  - Command mode for local development
+  - SSE mode for network-based access
+- 🛠️ Simple CLI interface
+- 🔑 Environment-based configuration
+- 🎯 High reasoning effort by default
 
-### Python Package 🐍
-- Advanced code analysis capabilities
-- LangGraph and LangChain integration
-- OpenAI's latest models support
-- Rich console output for better UX
-
-## Project Structure 📁
-
-```
-CursorExtend/
-├── packages/                    # Monorepo packages
-│   ├── cli/                    # TypeScript CLI tool
-│   │   ├── src/               # Source code
-│   │   ├── package.json       # Package configuration
-│   │   └── tsconfig.json      # TypeScript configuration
-│   └── python/                # Python package
-│       ├── cursorextend/      # Main package code
-│       ├── tests/             # Test suite
-│       └── pyproject.toml     # Project configuration
-├── package.json               # Root package configuration
-└── README.md                 # Project documentation
-```
-
-## Installation 🛠️
-
-### CLI Tool (Node.js)
+## Installation 🔧
 
 ```bash
-# Install the CLI tool globally
-npm install -g @cursorextend/cli
+# Clone the repository
+git clone https://github.com/yourusername/cursor-mcp.git
+cd cursor-mcp
 
-# Or use it directly from the repository
-git clone https://github.com/yourusername/CursorExtend.git
-cd CursorExtend
+# Install dependencies
 npm install
-cd packages/cli
-npm link
+
+# Optional: Install globally
+npm install -g .
 ```
 
-### Python Package
+## Configuration ⚙️
 
+1. Create an env.js file:
+```javascript
+export const OPENAI_API_KEY = "your-openai-key";
+```
+
+Or set environment variable:
 ```bash
-# Install using uv
-uv pip install cursorextend
-
-# Or install from source
-git clone https://github.com/yourusername/CursorExtend.git
-cd CursorExtend/packages/python
-uv venv
-source .venv/bin/activate  # On Unix/macOS
-# or
-.venv\Scripts\activate    # On Windows
-
-uv pip install -e ".[dev]"
+export OPENAI_API_KEY="your-openai-key"
 ```
 
 ## Usage 💡
 
-### CLI Tool
+### Starting the Server
+
+Command Mode (default):
 ```bash
-# Run the setup wizard
-cursorextend setup
-
-# Analyze code architecture
-cursorextend analyze ./path/to/project
-
-# Run ML pipeline management
-cursorextend ml start
+npm start
+# or if installed globally
+cursor-mcp start
 ```
 
-### Python Package
-```python
-from cursorextend import DeepResearchAgent
-
-agent = DeepResearchAgent()
-results = agent.analyze("your research query here")
+SSE Mode:
+```bash
+npm run start:sse
+# or if installed globally
+cursor-mcp start --mode sse
 ```
 
-## Environment Variables 🔑
+### Adding to Cursor
 
-Required environment variables:
-- `OPENAI_API_KEY`: Your OpenAI API key
-- `GITHUB_TOKEN`: Your GitHub API token (for CLI tool)
+1. Open Cursor Settings (⌘ + ,)
+2. Go to Features tab
+3. Find MCP section
+4. Click "+ Add New MCP Server"
+
+For Command Mode:
+- Name: o3-mini-mcp
+- Type: command
+- Command: node /path/to/index.js
+
+For SSE Mode:
+- Name: o3-mini-mcp
+- Type: sse
+- URL: http://localhost:3000/sse
+
+## Testing 🧪
+
+1. After adding the server to Cursor:
+2. Open Composer (⌘ + K)
+3. Type: "Use the o3-mini-mcp to analyze this code"
+4. The server should process your request using the o3-mini model
+
+## Troubleshooting 🔍
+
+Common issues:
+- Check if OPENAI_API_KEY is set
+- Ensure server is running (look for "MCP Server started" message)
+- Try restarting Cursor
+- Check server logs for errors
 
 ## Development 👨‍💻
 
-### CLI Tool
 ```bash
-# Install dependencies
-npm install
-
-# Run tests
-npm test
-
-# Build
-npm run build
-```
-
-### Python Package
-```bash
-# Run tests
-pytest
-
-# Run linter and formatter
-ruff check .
-ruff check . --fix
+# Run in development mode (auto-restart)
+npm run dev
 ```
 
 ## Contributing 🤝
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
 5. Open a Pull Request
 
 ## License 📄
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT
 
 ## Acknowledgments 🙏
 
-- Built with [Oclif](https://oclif.io/) for CLI
-- Powered by [LangChain](https://github.com/hwchase17/langchain) and [LangGraph](https://github.com/langchain-ai/langgraph)
-- Uses [OpenAI](https://openai.com/) models
-- Integrates with GitHub, StackOverflow, and web search APIs
+- Built for [Cursor](https://cursor.sh)
+- Powered by [OpenAI](https://openai.com/)
+- Uses [Express](https://expressjs.com/) for SSE mode
